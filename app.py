@@ -1,4 +1,4 @@
-# app.py (updated for Amazon India: country='IN', INR currency, India-specific browse nodes)
+# app.py (fixed: removed 'resources' from search_items to avoid duplicate kwarg; fixed image/title access for safety)
 from flask import Flask, render_template, request
 from amazon_paapi import AmazonApi
 import os
@@ -30,13 +30,9 @@ def index():
     selected_category = request.args.get('category', 'Electronics')
     browse_node_id = CATEGORIES.get(selected_category, '976420031')  # Fallback to Electronics
     
-    # Search for items in selected category
+    # Search for items in selected category (removed 'resources' to fix duplicate kwarg error; defaults should include ASIN/title/image)
     search_result = amazon.search_items(
         browse_node_id=browse_node_id,
-        resources=[
-            'ItemInfo.Title',
-            'Images.Primary.Large',
-        ],
         item_count=10  # Up to 10 items
     )
     
@@ -63,32 +59,37 @@ def index():
             listing = item.offers.listings[0]
             if hasattr(listing.price, 'amount') and listing.price.amount is not None:
                 offer_price = listing.price.amount
-                list_price = getattr(listing.price, 'list_price', None)
+                list_price_obj = getattr(listing.price, 'list_price', None)
                 discount_pct = 0
-                discount_text = "Coupon Deal" if hasattr(item.offers, 'coupons') and item.offers.coupons else None
-                if list_price and hasattr(list_price, 'amount') and list_price.amount:
-                    discount_pct = ((list_price.amount - offer_price) / list_price.amount) * 100
+                has_coupon = hasattr(item.offers, 'coupons') and item.offers.coupons
+                discount_text = None
+                
+                if list_price_obj and hasattr(list_price_obj, 'amount') and list_price_obj.amount:
+                    list_price = list_price_obj.amount
+                    discount_pct = ((list_price - offer_price) / list_price) * 100
                     if discount_pct > 20:
                         discount_text = f"{discount_pct:.1f}% off"
-                        deal = {
-                            'title': getattr(item.item_info.title, 'display_value', 'N/A'),
-                            'image': getattr(item.images.primary.large, 'url', None) if hasattr(item.images, 'primary') else None,
-                            'offer_price': f"₹{offer_price}",
-                            'list_price': f"₹{list_price.amount}",
-                            'discount': discount_text,
-                            'url': getattr(item, 'detail_page_url', '#'),
-                            'coupon': getattr(item.offers, 'coupons', None)
-                        }
-                        deals.append(deal)
-                elif discount_text:  # Coupon only
+                    elif has_coupon:
+                        discount_text = f"{discount_pct:.1f}% off + Coupon"
+                elif has_coupon:
+                    discount_text = "Coupon Deal"
+                
+                if discount_text:  # Add if huge discount or coupon (regardless of discount %)
+                    title = getattr(getattr(item.item_info.title, 'display_value', None), 'value', 'N/A') if hasattr(item.item_info, 'title') else 'N/A'
+                    image_url = getattr(getattr(getattr(item.images, 'primary', None), 'large', None), 'url', None)
+                    if hasattr(image_url, 'value'):
+                        image_url = image_url.value
+                    image = image_url if image_url else None
+                    detail_url = getattr(item, 'detail_page_url', '#')
+                    
                     deal = {
-                        'title': getattr(item.item_info.title, 'display_value', 'N/A'),
-                        'image': getattr(item.images.primary.large, 'url', None) if hasattr(item.images, 'primary') else None,
+                        'title': title,
+                        'image': image,
                         'offer_price': f"₹{offer_price}",
-                        'list_price': f"₹{offer_price}",
+                        'list_price': f"₹{list_price}" if 'list_price' in locals() else f"₹{offer_price}",
                         'discount': discount_text,
-                        'url': getattr(item, 'detail_page_url', '#'),
-                        'coupon': item.offers.coupons
+                        'url': detail_url,
+                        'coupon': item.offers.coupons if has_coupon else None
                     }
                     deals.append(deal)
     
