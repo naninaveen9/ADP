@@ -26,7 +26,7 @@ def index():
         access_key=ACCESS_KEY,
         secret_key=SECRET_KEY,
         partner_tag=PARTNER_TAG,
-        country='US'  # Change if needed, e.g., 'UK'
+        country='IN'  # Change if needed, e.g., 'UK'
     )
     
     # Get category from query param, default to Electronics
