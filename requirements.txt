@@ -1,3 +1,4 @@
 # requirements.txt
 flask==3.0.3
 python-amazon-paapi==5.0.1
+gunicorn==23.0.0
