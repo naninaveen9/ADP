@@ -1,4 +1,4 @@
-# app.py (fixed: get_items uses positional 'items' arg; simplified attribute access based on docs)
+# app.py (fixed: removed 'resources' from get_items to use library defaults, which include offers/prices per examples)
 from flask import Flask, render_template, request
 from amazon_paapi import AmazonApi
 import os
@@ -41,14 +41,8 @@ def index():
     if not asins:
         return render_template('index.html', deals=[], message="No items found.", categories=CATEGORIES, selected_category=selected_category)
     
-    # Get detailed items with offers (fixed: positional 'items' arg, then resources kwarg)
-    items_result = amazon.get_items(asins, resources=[
-        'ItemInfo.Title',
-        'Images.Primary.Large',
-        'Offers.Listings.Price',
-        'Offers.Summaries.Savings',
-        'Offers.Coupons',
-    ])
+    # Get detailed items with offers (no resources kwarg; library defaults include offers/prices/coupons)
+    items_result = amazon.get_items(asins)
     
     deals = []
     for item in items_result.items:
@@ -72,7 +66,7 @@ def index():
                 elif has_coupon:
                     discount_text = "Coupon Deal"
                 
-                if discount_text:  # Add if huge discount or coupon (regardless of discount %)
+                if discount_text:  # Add if huge discount or coupon
                     title = item.item_info.title.display_value if hasattr(item.item_info, 'title') else 'N/A'
                     image = item.images.primary.large.url if hasattr(item.images, 'primary') else None
                     detail_url = getattr(item, 'detail_page_url', '#')
