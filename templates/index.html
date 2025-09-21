@@ -1,0 +1,88 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon Best Deals</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1d9bf0',  // X.com blue
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-base-300 text-base-content min-h-screen">
+    <!-- Navbar -->
+    <div class="navbar bg-base-100 shadow-md">
+        <div class="flex-1">
+            <a class="btn btn-ghost text-xl text-primary">🔥 Amazon Best Deals</a>
+        </div>
+        <div class="flex-none">
+            <form action="/" method="get" class="flex items-center gap-2">
+                <select name="category" class="select select-bordered w-full max-w-xs">
+                    {% for cat in categories %}
+                    <option value="{{ cat }}" {% if cat == selected_category %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-primary">Search Category</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-8">
+        {% if message %}
+            <div class="alert alert-info mb-8">
+                <span>{{ message }}</span>
+            </div>
+        {% endif %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {% for deal in deals %}
+            <div class="card bg-base-200 shadow-md hover:shadow-xl transition-shadow duration-300 hover:scale-105">
+                <a href="{{ deal.url }}" target="_blank" class="block">
+                    <figure>
+                        {% if deal.image %}
+                        <img src="{{ deal.image }}" alt="{{ deal.title }}" class="w-full h-48 object-cover rounded-t-lg" />
+                        {% else %}
+                        <div class="w-full h-48 bg-base-100 flex items-center justify-center rounded-t-lg">
+                            <span class="text-base-content">No Image</span>
+                        </div>
+                        {% endif %}
+                    </figure>
+                    <div class="card-body p-4">
+                        <div class="flex justify-between items-start">
+                            <h2 class="card-title text-base-content text-sm line-clamp-2">{{ deal.title }}</h2>
+                            {% if deal.discount %}
+                            <span class="badge badge-error ml-2">{{ deal.discount }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="mt-2">
+                            <p class="text-lg font-bold text-success">{{ deal.offer_price }}</p>
+                            <p class="text-sm text-base-content line-through">{{ deal.list_price }}</p>
+                        </div>
+                        {% if deal.coupon %}
+                        <div class="mt-2">
+                            <span class="badge badge-info">💸 Coupon Available!</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        {% if not deals %}
+        <div class="text-center mt-12">
+            <p class="text-base-content">No deals matching criteria right now. Try checking back later or switch categories!</p>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
