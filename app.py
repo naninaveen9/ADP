@@ -1,4 +1,4 @@
-# app.py (fixed: removed 'resources' from search_items to avoid duplicate kwarg; fixed image/title access for safety)
+# app.py (fixed: get_items uses positional 'items' arg; simplified attribute access based on docs)
 from flask import Flask, render_template, request
 from amazon_paapi import AmazonApi
 import os
@@ -30,7 +30,7 @@ def index():
     selected_category = request.args.get('category', 'Electronics')
     browse_node_id = CATEGORIES.get(selected_category, '976420031')  # Fallback to Electronics
     
-    # Search for items in selected category (removed 'resources' to fix duplicate kwarg error; defaults should include ASIN/title/image)
+    # Search for items in selected category (no resources; defaults suffice)
     search_result = amazon.search_items(
         browse_node_id=browse_node_id,
         item_count=10  # Up to 10 items
@@ -41,17 +41,14 @@ def index():
     if not asins:
         return render_template('index.html', deals=[], message="No items found.", categories=CATEGORIES, selected_category=selected_category)
     
-    # Get detailed items with offers
-    items_result = amazon.get_items(
-        item_ids=asins,
-        resources=[
-            'ItemInfo.Title',
-            'Images.Primary.Large',
-            'Offers.Listings.Price',
-            'Offers.Summaries.Savings',
-            'Offers.Coupons',
-        ]
-    )
+    # Get detailed items with offers (fixed: positional 'items' arg, then resources kwarg)
+    items_result = amazon.get_items(asins, resources=[
+        'ItemInfo.Title',
+        'Images.Primary.Large',
+        'Offers.Listings.Price',
+        'Offers.Summaries.Savings',
+        'Offers.Coupons',
+    ])
     
     deals = []
     for item in items_result.items:
@@ -64,6 +61,7 @@ def index():
                 has_coupon = hasattr(item.offers, 'coupons') and item.offers.coupons
                 discount_text = None
                 
+                list_price = offer_price  # Default
                 if list_price_obj and hasattr(list_price_obj, 'amount') and list_price_obj.amount:
                     list_price = list_price_obj.amount
                     discount_pct = ((list_price - offer_price) / list_price) * 100
@@ -75,18 +73,15 @@ def index():
                     discount_text = "Coupon Deal"
                 
                 if discount_text:  # Add if huge discount or coupon (regardless of discount %)
-                    title = getattr(getattr(item.item_info.title, 'display_value', None), 'value', 'N/A') if hasattr(item.item_info, 'title') else 'N/A'
-                    image_url = getattr(getattr(getattr(item.images, 'primary', None), 'large', None), 'url', None)
-                    if hasattr(image_url, 'value'):
-                        image_url = image_url.value
-                    image = image_url if image_url else None
+                    title = item.item_info.title.display_value if hasattr(item.item_info, 'title') else 'N/A'
+                    image = item.images.primary.large.url if hasattr(item.images, 'primary') else None
                     detail_url = getattr(item, 'detail_page_url', '#')
                     
                     deal = {
                         'title': title,
                         'image': image,
                         'offer_price': f"₹{offer_price}",
-                        'list_price': f"₹{list_price}" if 'list_price' in locals() else f"₹{offer_price}",
+                        'list_price': f"₹{list_price}",
                         'discount': discount_text,
                         'url': detail_url,
                         'coupon': item.offers.coupons if has_coupon else None
