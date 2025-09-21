@@ -1,37 +1,34 @@
-# app.py
+# app.py (updated for Amazon India: country='IN', INR currency, India-specific browse nodes)
 from flask import Flask, render_template, request
 from amazon_paapi import AmazonApi
+import os
 
 app = Flask(__name__)
 
-# Dictionary of popular categories with browse node IDs
+# Updated categories with Amazon India browse node IDs
 CATEGORIES = {
-    'Electronics': '172282',
-    'Computers': '565108',
-    'Books': '283155',
-    'Home & Kitchen': '1055398',
-    'Beauty & Personal Care': '3760911',
-    'Toys & Games': '165793011',
-    'Sports & Outdoors': '3375251',
+    'Electronics': '976420031',
+    'Computers': '976393031',
+    'Books': '976390031',
+    'Home & Kitchen': '2454176031',
+    'Beauty & Personal Care': '1350385031',
+    'Toys & Games': '1350381031',
+    'Sports & Outdoors': '1984444031',
 }
 
 @app.route('/', methods=['GET'])
 def index():
-    # Updated with provided credentials
+    # Credentials (same, but now for IN)
     ACCESS_KEY = 'AKPAVOAX6F1758423127'
     SECRET_KEY = 'fvDsfID7ikjBSAMqcUFsuu8ZxUGKXqZbTWkKODZp'
     PARTNER_TAG = 'naninaveennet-21'
     
-    amazon = AmazonApi(
-        access_key=ACCESS_KEY,
-        secret_key=SECRET_KEY,
-        partner_tag=PARTNER_TAG,
-        country='IN'  # Change if needed, e.g., 'UK'
-    )
+    # Updated for India
+    amazon = AmazonApi(ACCESS_KEY, SECRET_KEY, PARTNER_TAG, 'IN')
     
     # Get category from query param, default to Electronics
     selected_category = request.args.get('category', 'Electronics')
-    browse_node_id = CATEGORIES.get(selected_category, '172282')  # Fallback to Electronics
+    browse_node_id = CATEGORIES.get(selected_category, '976420031')  # Fallback to Electronics
     
     # Search for items in selected category
     search_result = amazon.search_items(
@@ -76,8 +73,8 @@ def index():
                         deal = {
                             'title': getattr(item.item_info.title, 'display_value', 'N/A'),
                             'image': getattr(item.images.primary.large, 'url', None) if hasattr(item.images, 'primary') else None,
-                            'offer_price': f"${offer_price}",
-                            'list_price': f"${list_price.amount}",
+                            'offer_price': f"₹{offer_price}",
+                            'list_price': f"₹{list_price.amount}",
                             'discount': discount_text,
                             'url': getattr(item, 'detail_page_url', '#'),
                             'coupon': getattr(item.offers, 'coupons', None)
@@ -87,8 +84,8 @@ def index():
                     deal = {
                         'title': getattr(item.item_info.title, 'display_value', 'N/A'),
                         'image': getattr(item.images.primary.large, 'url', None) if hasattr(item.images, 'primary') else None,
-                        'offer_price': f"${offer_price}",
-                        'list_price': f"${offer_price}",
+                        'offer_price': f"₹{offer_price}",
+                        'list_price': f"₹{offer_price}",
                         'discount': discount_text,
                         'url': getattr(item, 'detail_page_url', '#'),
                         'coupon': item.offers.coupons
